@@ -1,7 +1,7 @@
 from rest_framework import generics, status, pagination
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
-from app.serializers.system.users.user_serializer import UserSerializer
+from app.serializers.system.user_serializer import UserSerializer
 from rest_framework.response import Response
 from app.helpers.log_helper import log_helper
 from app.libraries.custom_pagination import CustomPagination

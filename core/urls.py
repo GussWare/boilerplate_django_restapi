@@ -17,9 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework_simplejwt import views as jwt_views
-from app.views.system.auth.login_view import LoginView
-from app.views.system.auth.register_user_view import RegisterUserView
-from app.views.system.users.user_view import UserPagination, UserList, UserDetail, UserEnabled, UserDisabled
+from app.views.system.auth_view import LoginView, RegisterUserView
+from app.views.system.user_view import UserPagination, UserList, UserDetail, UserEnabled, UserDisabled
 
 urlpatterns = [
     path('admin/', admin.site.urls),
