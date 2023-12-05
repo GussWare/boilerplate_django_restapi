@@ -7,10 +7,13 @@ from rest_framework import status
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.hashers import make_password
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
+from django.contrib.auth.models import User
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
 from app.serializers.system.auth_serializer import LoginSerializer, ResetPasswordSerializer, RegisterSerializer
+from app.serializers.system.user_serializer import UserSerializer
 from app.services.emails.auth import forgot_password_email
 
 
@@ -55,7 +58,7 @@ class ForgotPasswordView(APIView):
 
     Args:
         request (HttpRequest): The HTTP request object.
-        
+
     Returns:
         Response: The HTTP response object.
     """
@@ -111,6 +114,7 @@ class RegisterUserView(APIView):
 
     Methods:
     - post: Handles the POST request and creates a new user if the data is valid.
+    - verify_email: Handles the GET request to verify the user's email.
 
     Attributes:
     - serializer: An instance of RegisterSerializer used for validating and saving user data.
@@ -119,6 +123,47 @@ class RegisterUserView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
+            # Send verification email to the user
+            # You can implement this logic using your email service
+            # For example:
+            # verification_token = default_token_generator.make_token(user)
+            # verification_url = reverse('verify_email', kwargs={'uidb64': urlsafe_base64_encode(force_bytes(user.pk)), 'token': verification_token})
+            # send_verification_email(user.email, verification_url)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyEmailView(APIView):
+    """
+    API view for verifying user's email.
+
+    This view accepts a GET request with a verification token in the URL.
+    If the token is valid, it sets the 'is_verify_email' attribute of the user to True.
+
+    Methods:
+    - get: Handles the GET request and verifies the user's email.
+
+    Attributes:
+    - token_param: The name of the URL parameter that contains the verification token.
+    """
+
+    token_param = 'token'
+
+    def get(self, request):
+        token = request.GET.get(self.token_param)
+        if token:
+            try:
+                uidb64, token = token.split(':')
+                uid = force_str(urlsafe_base64_decode(uidb64))
+                user = get_object_or_404(User, pk=uid)
+                if default_token_generator.check_token(user, token):
+                    user.is_verify_email = True
+                    user.save()
+                    return Response({'detail': 'Email verified successfully.'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'detail': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+            except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+                return Response({'detail': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'detail': 'Token not provided.'}, status=status.HTTP_400_BAD_REQUEST)
