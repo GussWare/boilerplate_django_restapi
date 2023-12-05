@@ -13,7 +13,7 @@ class ForgotPasswordEmail:
 
         current_site = get_current_site(request)
 
-        mail_subject = 'Reset your password'
+        mail_subject = 'forgot your password'
 
         message = render_to_string('emails/reset_password_email.html', {
             'user': user,
