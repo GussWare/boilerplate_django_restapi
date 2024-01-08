@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from app.helpers.log_helper import log_helper
 from app.libraries.custom_pagination import CustomPagination
 
-class UserPagination(generics.ListCreateAPIView):
+class UserPagination(generics.ListAPIView):
     """
     A view for paginating and filtering User objects.
 
@@ -43,8 +43,9 @@ class UserPagination(generics.ListCreateAPIView):
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['first_name', 'last_name', 'username', 'email', 'is_active']
+    search_fields = ['first_name', 'last_name', 'username', 'email']
 
-class UserList(generics.ListCreateAPIView):
+class UserList(generics.ListAPIView):
     """
     API endpoint that allows users to be listed and created.
 
@@ -63,29 +64,99 @@ class UserList(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-
-class UserDetail(generics.RetrieveUpdateDestroyAPIView):
+class UserDetail(generics.RetrieveAPIView):
     """
-    API endpoint for retrieving, updating, and deleting a user.
+    Retrieve a single user instance.
 
     Attributes:
         queryset (QuerySet): The queryset of User objects.
         serializer_class (Serializer): The serializer class for User objects.
 
-    HTTP Methods:
-        - GET: Retrieve a user.
-        - PUT: Update a user.
-        - DELETE: Delete a user.
+    Methods:
+        GET: Retrieves the details of a user.
 
-    Usage:
-        GET /users/{id}/
-        PUT /users/{id}/
-        DELETE /users/{id}/
     """
-
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+class UserCreate(generics.CreateAPIView):
+    """
+    API endpoint for creating a new user.
+
+    Inherits from `generics.CreateAPIView` and provides a POST method to create a user.
+
+    Attributes:
+        serializer_class (Serializer): The serializer class for User objects.
+
+    Methods:
+        post(self, request, *args, **kwargs): Handles the POST request to create a user.
+
+    Examples:
+        To create a new user, send a POST request to the following URL:
+        /api/users/
+
+        Example Request:
+        POST /api/users/
+        {
+            "username": "john_doe",
+            "email": "john.doe@example.com",
+            "password": "password123"
+        }
+
+        Example Response:
+        HTTP 201 Created
+        {
+            "id": 1,
+            "username": "john_doe",
+            "email": "john.doe@example.com",
+            "is_active": true
+        }
+    """
+
+    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class UserUpdate(generics.UpdateAPIView):
+    """
+    API endpoint for updating a user.
+
+    Inherits from `generics.UpdateAPIView` and provides a PUT method to update a user.
+
+    Attributes:
+        queryset (QuerySet): The queryset of User objects.
+        serializer_class (Serializer): The serializer class for User objects.
+
+    Methods:
+        put(self, request, *args, **kwargs): Handles the PUT request to update a user.
+
+    Examples:
+        To update a user, send a PUT request to the following URL:
+        /api/users/<user_id>/update
+
+        Example Request:
+        PUT /api/users/1234/
+        {
+            "username": "new_username",
+            "email": "new_email@example.com"
+        }
+
+        Example Response:
+        HTTP 200 OK
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UserEnabled(generics.UpdateAPIView):
     """
@@ -109,9 +180,6 @@ class UserEnabled(generics.UpdateAPIView):
 
         Example Response:
         HTTP 200 OK
-        {
-            "message": "User enabled successfully."
-        }
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -122,7 +190,6 @@ class UserEnabled(generics.UpdateAPIView):
         user.is_active = True
         user.save()
         return Response(status=status.HTTP_200_OK)
-
 
 class UserDisabled(generics.UpdateAPIView):
     """
@@ -161,3 +228,41 @@ class UserDisabled(generics.UpdateAPIView):
         user.is_active = False
         user.save()
         return Response(status=status.HTTP_200_OK)
+
+class UserGroups(generics.UpdateAPIView):
+    """
+    API endpoint for associating groups with a user.
+
+    Inherits from `generics.UpdateAPIView` and provides a PUT method to associate groups with a user.
+
+    Attributes:
+        queryset (QuerySet): The queryset of User objects.
+        serializer_class (Serializer): The serializer class for User objects.
+
+    Methods:
+        put(self, request, *args, **kwargs): Handles the PUT request to associate groups with a user.
+
+    Examples:
+        To associate groups with a user, send a PUT request to the following URL:
+        /api/users/{user_id}/groups/
+
+        Example Request:
+        PUT /api/users/1234/groups/
+        {
+            "groups": [1, 2, 3]
+        }
+
+        Example Response:
+        HTTP 200 OK
+        {
+            "message": "Groups associated with user successfully."
+        }
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def put(self, request, *args, **kwargs):
+        user = self.get_object()
+        group_ids = request.data.get('groups', [])
+        user.groups.set(group_ids)
+        return Response({"detail": "Groups associated with user successfully."}, status=status.HTTP_200_OK)

@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from django.contrib.auth.models import Group
+from app.models.system.group import GroupExtended
 
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Group
-        fields = ['id', 'name', 'permissions']
+        model = GroupExtended
+        fields = ['id', 'name', 'description', 'codename', 'created_at', 'updated_at']

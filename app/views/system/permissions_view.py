@@ -29,6 +29,7 @@ class PermissionPagination(generics.ListAPIView):
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name']
+    search_fields = ['name']
 
 class PermissionList(generics.ListAPIView):
     queryset = Permission.objects.all()
